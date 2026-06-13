@@ -18,7 +18,7 @@ export default function AdminPage() {
           <h1>Runtime location signals</h1>
           <p>
             Review the current request location signal and local transfer access
-            events that include masked account data and approved browser location.
+            events that include masked accounts data and approved browser location.
           </p>
         </div>
 
