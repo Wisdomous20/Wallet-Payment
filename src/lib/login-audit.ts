@@ -1,6 +1,9 @@
+import { Redis } from "@upstash/redis";
 import type { BrowserLocationSignal, FraudLocationSignal } from "./fraud-location";
 
 export type WalletChannel = "GCash" | "Maya";
+
+const AUDIT_EVENTS_KEY = "walletpay:login-audit-events";
 
 export type LoginAuditEvent = {
   id: string;
@@ -35,12 +38,41 @@ const globalAuditStore = globalThis as typeof globalThis & {
   walletpayLoginAuditEvents?: LoginAuditEvent[];
 };
 
-export function addLoginAuditEvent(event: LoginAuditEvent): LoginAuditEvent[] {
-  const events = getLoginAuditEvents();
+export async function addLoginAuditEvent(event: LoginAuditEvent): Promise<LoginAuditEvent[]> {
+  const redis = getRedisClient();
+
+  if (redis) {
+    await redis.lpush(AUDIT_EVENTS_KEY, event);
+    await redis.ltrim(AUDIT_EVENTS_KEY, 0, 99);
+    return getLoginAuditEvents();
+  }
+
+  const events = await getLoginAuditEvents();
   globalAuditStore.walletpayLoginAuditEvents = [event, ...events].slice(0, 100);
   return globalAuditStore.walletpayLoginAuditEvents;
 }
 
-export function getLoginAuditEvents(): LoginAuditEvent[] {
+export async function getLoginAuditEvents(): Promise<LoginAuditEvent[]> {
+  const redis = getRedisClient();
+
+  if (redis) {
+    return redis.lrange<LoginAuditEvent>(AUDIT_EVENTS_KEY, 0, 99);
+  }
+
   return globalAuditStore.walletpayLoginAuditEvents ?? [];
+}
+
+function getRedisClient(): Redis | null {
+  const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (!url || !token) {
+    return null;
+  }
+
+  return new Redis({ url, token });
+}
+
+export function getAuditStorageMode(): "redis" | "memory" {
+  return getRedisClient() ? "redis" : "memory";
 }

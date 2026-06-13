@@ -5,6 +5,7 @@ import {
 } from "@/lib/fraud-location";
 import {
   addLoginAuditEvent,
+  getAuditStorageMode,
   getLoginAuditEvents,
   type LoginAuditEvent,
   maskAccount,
@@ -14,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   return Response.json(
-    { events: getLoginAuditEvents() },
+    { events: await getLoginAuditEvents(), storageMode: getAuditStorageMode() },
     {
       headers: {
         "Cache-Control": "no-store, private",
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
     browserLocation: body.browserLocation,
   };
 
-  addLoginAuditEvent(event);
+  await addLoginAuditEvent(event);
 
   return Response.json(
     { event },

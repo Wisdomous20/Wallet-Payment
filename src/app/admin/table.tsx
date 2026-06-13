@@ -6,6 +6,7 @@ import styles from "../page.module.css";
 
 export function LocationAuditTable() {
   const [events, setEvents] = useState<LoginAuditEvent[]>([]);
+  const [storageMode, setStorageMode] = useState<"redis" | "memory" | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -22,11 +23,15 @@ export function LocationAuditTable() {
           return;
         }
 
-        const data = (await response.json()) as { events: LoginAuditEvent[] };
+      const data = (await response.json()) as {
+        events: LoginAuditEvent[];
+        storageMode: "redis" | "memory";
+      };
 
-        if (isMounted) {
-          setEvents(data.events);
-        }
+      if (isMounted) {
+        setEvents(data.events);
+        setStorageMode(data.storageMode);
+      }
       } catch {
         if (isMounted) {
           setEvents([]);
@@ -45,13 +50,15 @@ export function LocationAuditTable() {
   if (events.length === 0) {
     return (
       <section className={styles.auditEmpty}>
-        No local transfer location events yet. Complete the wallet access flow first.
+        <strong>Storage: {storageMode ?? "checking"}</strong>
+        <span>No transfer location events yet. Complete the wallet access flow first.</span>
       </section>
     );
   }
 
   return (
     <section className={styles.auditTableWrap}>
+      <div className={styles.auditStorage}>Storage: {storageMode ?? "checking"}</div>
       <table className={styles.auditTable}>
         <thead>
           <tr>

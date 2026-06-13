@@ -316,7 +316,25 @@
 }
 
 .auditEmpty {
+  display: grid;
+  gap: 8px;
   padding: 24px;
+}
+
+.auditEmpty strong,
+.auditStorage {
+  color: #0f6a46;
+  font-size: 0.84rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.auditEmpty span {
+  color: #52615c;
+}
+
+.auditStorage {
+  padding: 16px;
 }
 
 .auditTableWrap {
