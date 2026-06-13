@@ -1,3 +1,6 @@
+import { Reader } from "@maxmind/geoip2-node";
+import type ReaderModel from "@maxmind/geoip2-node/dist/src/readerModel";
+
 export type FraudLocationSignal = {
   ip: string | null;
   ipSource: string;
@@ -11,6 +14,18 @@ export type FraudLocationSignal = {
   longitude: number | null;
   confidence: "low" | "none";
   source: "ip_reverse_geocode" | "vercel_headers" | "unavailable";
+  provider: "maxmind" | "ip-api" | "vercel" | "none";
+  accuracyRadiusKm: number | null;
+  network: {
+    asn: string | null;
+    name: string | null;
+    domain: string | null;
+    type: string | null;
+    isMobile: boolean | null;
+    isAnonymous: boolean | null;
+    isHosting: boolean | null;
+    isAnycast: boolean | null;
+  };
   notes: string[];
 };
 
@@ -45,6 +60,19 @@ type IpApiResponse = {
   lon?: number;
 };
 
+type NormalizedIpLocation = {
+  provider: "maxmind" | "ip-api";
+  city: string | null;
+  region: string | null;
+  country: string | null;
+  countryCode: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  accuracyRadiusKm: number | null;
+  network: FraudLocationSignal["network"];
+  notes: string[];
+};
+
 type ReverseGeocodeResponse = {
   city?: string;
   locality?: string;
@@ -73,6 +101,10 @@ const PRIVATE_IP_PATTERNS = [
   /^fd/i,
   /^fe80:/i,
 ];
+
+const globalMaxMindReader = globalThis as typeof globalThis & {
+  walletpayMaxMindReaderPromise?: Promise<ReaderModel | null>;
+};
 
 export function getClientIp(headers: Headers): { ip: string | null; source: string } {
   const headerCandidates = [
@@ -137,6 +169,9 @@ export async function resolveFraudLocationSignal({
       longitude: null,
       confidence: "none",
       source: "unavailable",
+      provider: "none",
+      accuracyRadiusKm: null,
+      network: emptyNetworkSignal(),
       notes: [
         "No public client IP was available. Localhost and private network IPs cannot be geolocated.",
       ],
@@ -159,6 +194,9 @@ export async function resolveFraudLocationSignal({
       longitude: null,
       confidence: "low",
       source: "vercel_headers",
+      provider: "vercel",
+      accuracyRadiusKm: null,
+      network: emptyNetworkSignal(),
       notes: [
         "The IP lookup provider did not return coordinates, so only Vercel header location was available.",
       ],
@@ -166,8 +204,8 @@ export async function resolveFraudLocationSignal({
   }
 
   const reverseLocation =
-    typeof ipLocation.lat === "number" && typeof ipLocation.lon === "number"
-      ? await reverseGeocode(ipLocation.lat, ipLocation.lon)
+    typeof ipLocation.latitude === "number" && typeof ipLocation.longitude === "number"
+      ? await reverseGeocode(ipLocation.latitude, ipLocation.longitude)
       : null;
 
   const barangayCandidate = reverseLocation ? extractBarangayCandidate(reverseLocation) : null;
@@ -183,6 +221,7 @@ export async function resolveFraudLocationSignal({
     );
   }
 
+  notes.push(...ipLocation.notes);
   notes.push("Use this as a low-confidence fraud signal only, not as verified address data.");
 
   return {
@@ -192,14 +231,17 @@ export async function resolveFraudLocationSignal({
     barangay,
     city: reverseLocation?.city ?? reverseLocation?.locality ?? ipLocation.city ?? vercelHeaders.city,
     region:
-      reverseLocation?.principalSubdivision ?? ipLocation.regionName ?? vercelHeaders.region,
+      reverseLocation?.principalSubdivision ?? ipLocation.region ?? vercelHeaders.region,
     country: reverseLocation?.countryName ?? ipLocation.country ?? null,
     countryCode:
       reverseLocation?.countryCode ?? ipLocation.countryCode ?? vercelHeaders.countryCode,
-    latitude: ipLocation.lat ?? null,
-    longitude: ipLocation.lon ?? null,
+    latitude: ipLocation.latitude,
+    longitude: ipLocation.longitude,
     confidence: "low",
     source: "ip_reverse_geocode",
+    provider: ipLocation.provider,
+    accuracyRadiusKm: ipLocation.accuracyRadiusKm,
+    network: ipLocation.network,
     notes,
   };
 }
@@ -266,7 +308,26 @@ function decodeHeaderValue(value: string | null): string | null {
   }
 }
 
-async function fetchIpLocation(ip: string): Promise<IpApiResponse | null> {
+function emptyNetworkSignal(): FraudLocationSignal["network"] {
+  return {
+    asn: null,
+    name: null,
+    domain: null,
+    type: null,
+    isMobile: null,
+    isAnonymous: null,
+    isHosting: null,
+    isAnycast: null,
+  };
+}
+
+async function fetchIpLocation(ip: string): Promise<NormalizedIpLocation | null> {
+  const maxMindLocation = await fetchMaxMindLocation(ip);
+
+  if (maxMindLocation) {
+    return maxMindLocation;
+  }
+
   const url = new URL(`http://ip-api.com/json/${encodeURIComponent(ip)}`);
   url.searchParams.set(
     "fields",
@@ -285,7 +346,81 @@ async function fetchIpLocation(ip: string): Promise<IpApiResponse | null> {
     return null;
   }
 
-  return data;
+  return {
+    provider: "ip-api",
+    city: data.city ?? null,
+    region: data.regionName ?? null,
+    country: data.country ?? null,
+    countryCode: data.countryCode ?? null,
+    latitude: data.lat ?? null,
+    longitude: data.lon ?? null,
+    accuracyRadiusKm: null,
+    network: emptyNetworkSignal(),
+    notes: ["ip-api was used for the automatic IP signal."],
+  };
+}
+
+async function fetchMaxMindLocation(ip: string): Promise<NormalizedIpLocation | null> {
+  const reader = await getMaxMindReader();
+
+  if (!reader) {
+    return null;
+  }
+
+  try {
+    const response = reader.city(ip);
+    const subdivision = response.subdivisions?.[0];
+    const traits = response.traits;
+
+    return {
+      provider: "maxmind",
+      city: response.city?.names?.en ?? null,
+      region: subdivision?.names?.en ?? null,
+      country: response.country?.names?.en ?? response.registeredCountry?.names?.en ?? null,
+      countryCode: response.country?.isoCode ?? response.registeredCountry?.isoCode ?? null,
+      latitude: response.location?.latitude ?? null,
+      longitude: response.location?.longitude ?? null,
+      accuracyRadiusKm: response.location?.accuracyRadius ?? null,
+      network: {
+        asn: traits?.autonomousSystemNumber
+          ? String(traits.autonomousSystemNumber)
+          : null,
+        name:
+          traits?.autonomousSystemOrganization ??
+          traits?.isp ??
+          traits?.organization ??
+          null,
+        domain: traits?.domain ?? null,
+        type: traits?.userType ?? traits?.connectionType ?? null,
+        isMobile: traits?.connectionType === "Cellular" || traits?.userType === "cellular",
+        isAnonymous: traits?.isAnonymous ?? traits?.isAnonymousProxy ?? null,
+        isHosting: traits?.isHostingProvider ?? traits?.userType === "hosting",
+        isAnycast: traits?.isAnycast ?? null,
+      },
+      notes: [
+        "MaxMind MMDB was used for the automatic IP signal.",
+        ...(response.location?.accuracyRadius
+          ? [`MaxMind reported an approximate radius of ${response.location.accuracyRadius} km.`]
+          : []),
+      ],
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function getMaxMindReader(): Promise<ReaderModel | null> {
+  const databasePath = process.env.MAXMIND_CITY_DB_PATH ?? process.env.GEOLITE2_CITY_DB_PATH;
+
+  if (!databasePath) {
+    return null;
+  }
+
+  if (!globalMaxMindReader.walletpayMaxMindReaderPromise) {
+    globalMaxMindReader.walletpayMaxMindReaderPromise = Reader.open(databasePath).catch(() => null);
+  }
+
+  return globalMaxMindReader.walletpayMaxMindReaderPromise;
 }
 
 async function reverseGeocode(
