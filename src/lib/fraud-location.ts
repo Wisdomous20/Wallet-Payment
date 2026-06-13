@@ -85,7 +85,7 @@ export function getClientIp(headers: Headers): { ip: string | null; source: stri
 
   for (const header of headerCandidates) {
     const value = headers.get(header);
-    const ip = parseForwardedIp(value);
+    const ip = parseForwardedIp(value, header);
 
     if (ip) {
       return { ip, source: header };
@@ -242,13 +242,16 @@ export async function resolveBrowserLocationSignal({
   };
 }
 
-function parseForwardedIp(value: string | null): string | null {
+function parseForwardedIp(value: string | null, header: string): string | null {
   if (!value) {
     return null;
   }
 
-  const firstIp = value.split(",")[0]?.trim();
-  return firstIp || null;
+  const ips = header === "x-forwarded-for"
+    ? value.split(",").map((ip) => ip.trim()).filter(Boolean)
+    : [value.trim()].filter(Boolean);
+
+  return ips.find((ip) => !isLocalOrPrivateIp(ip)) ?? ips[0] ?? null;
 }
 
 function decodeHeaderValue(value: string | null): string | null {

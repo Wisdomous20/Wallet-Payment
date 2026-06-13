@@ -1,18 +1,45 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LOGIN_AUDIT_STORAGE_KEY, type LoginAuditEvent } from "@/lib/login-audit";
+import { type LoginAuditEvent } from "@/lib/login-audit";
 import styles from "../page.module.css";
 
 export function LocationAuditTable() {
   const [events, setEvents] = useState<LoginAuditEvent[]>([]);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      setEvents(readAuditEvents());
-    }, 0);
+    let isMounted = true;
 
-    return () => window.clearTimeout(timeout);
+    async function loadEvents() {
+      try {
+        const response = await fetch("/api/login-events", { cache: "no-store" });
+
+        if (!response.ok) {
+          if (isMounted) {
+            setEvents([]);
+          }
+
+          return;
+        }
+
+        const data = (await response.json()) as { events: LoginAuditEvent[] };
+
+        if (isMounted) {
+          setEvents(data.events);
+        }
+      } catch {
+        if (isMounted) {
+          setEvents([]);
+        }
+      }
+    }
+
+    const timeout = window.setTimeout(() => void loadEvents(), 0);
+
+    return () => {
+      isMounted = false;
+      window.clearTimeout(timeout);
+    };
   }, []);
 
   if (events.length === 0) {
@@ -42,7 +69,7 @@ export function LocationAuditTable() {
               <td>{new Date(event.createdAt).toLocaleString()}</td>
               <td>{event.maskedAccount}</td>
               <td>{event.walletChannel}</td>
-              <td>{event.status.replaceAll("_", " ")}</td>
+              <td>{formatStatus(event.status)}</td>
               <td>{formatIpLocation(event)}</td>
               <td>{formatBrowserLocation(event)}</td>
             </tr>
@@ -53,13 +80,15 @@ export function LocationAuditTable() {
   );
 }
 
-function readAuditEvents(): LoginAuditEvent[] {
-  try {
-    const rawEvents = localStorage.getItem(LOGIN_AUDIT_STORAGE_KEY);
-    return rawEvents ? (JSON.parse(rawEvents) as LoginAuditEvent[]) : [];
-  } catch {
-    return [];
-  }
+function formatStatus(status: LoginAuditEvent["status"]): string {
+  const labels: Record<LoginAuditEvent["status"], string> = {
+    runtime_ip_checked: "Runtime IP checked",
+    location_requested: "Location requested",
+    location_approved: "Browser location approved",
+    review_started: "Transfer review started",
+  };
+
+  return labels[status];
 }
 
 function formatIpLocation(event: LoginAuditEvent): string {

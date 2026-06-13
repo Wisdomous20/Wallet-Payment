@@ -1,70 +1,67 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { BrowserLocationSignal, FraudLocationSignal } from "@/lib/fraud-location";
-import {
-  LOGIN_AUDIT_STORAGE_KEY,
-  type LoginAuditEvent,
-  type WalletChannel,
-  maskAccount,
-} from "@/lib/login-audit";
+import type { BrowserLocationSignal } from "@/lib/fraud-location";
+import { type LoginAuditEvent, type WalletChannel } from "@/lib/login-audit";
 import styles from "./page.module.css";
 
 export function WalletPayout() {
   const [account, setAccount] = useState("");
   const [walletChannel, setWalletChannel] = useState<WalletChannel>("GCash");
-  const [ipSignal, setIpSignal] = useState<FraudLocationSignal | null>(null);
   const [browserLocation, setBrowserLocation] = useState<BrowserLocationSignal | null>(null);
   const [reviewStatus, setReviewStatus] = useState("Confirm location to continue.");
 
   useEffect(() => {
     let isMounted = true;
 
-    async function loadIpSignal() {
+    async function recordRuntimeIpSignal() {
       try {
-        const response = await fetch("/api/fraud-location", { cache: "no-store" });
-
-        if (!response.ok) {
-          throw new Error("Location signal unavailable.");
-        }
-
-        const signal = (await response.json()) as FraudLocationSignal;
-
-        if (isMounted) {
-          setIpSignal(signal);
-        }
+        await fetch("/api/login-events", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            account: "",
+            walletChannel: "GCash",
+            status: "runtime_ip_checked",
+            browserLocation: null,
+          }),
+        });
       } catch {
         // The transfer page should still render if the background risk signal fails.
       }
     }
 
-    loadIpSignal();
+    if (isMounted) {
+      void recordRuntimeIpSignal();
+    }
 
     return () => {
       isMounted = false;
     };
   }, []);
 
-  function writeAuditEvent(status: LoginAuditEvent["status"], location: BrowserLocationSignal | null) {
-    const nextEvent: LoginAuditEvent = {
-      id: crypto.randomUUID(),
-      maskedAccount: maskAccount(account),
-      walletChannel,
-      status,
-      createdAt: new Date().toISOString(),
-      ipSignal,
-      browserLocation: location,
-    };
-
-    const existing = readAuditEvents();
-    localStorage.setItem(
-      LOGIN_AUDIT_STORAGE_KEY,
-      JSON.stringify([nextEvent, ...existing].slice(0, 50)),
-    );
+  async function writeAuditEvent(
+    status: LoginAuditEvent["status"],
+    location: BrowserLocationSignal | null,
+  ) {
+    await fetch("/api/login-events", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        account,
+        walletChannel,
+        status,
+        browserLocation: location,
+      }),
+    });
   }
 
   async function approveLocation() {
-    writeAuditEvent("location_requested", null);
+    void writeAuditEvent("location_requested", null);
 
     if (!("geolocation" in navigator)) {
       setReviewStatus("This browser does not support location sharing.");
@@ -94,7 +91,7 @@ export function WalletPayout() {
           const location = (await response.json()) as BrowserLocationSignal;
           setBrowserLocation(location);
           setReviewStatus("Location approved. Wallet review can continue.");
-          writeAuditEvent("location_approved", location);
+          void writeAuditEvent("location_approved", location);
         } catch {
           setReviewStatus("Location was approved, but reverse geocoding failed.");
         }
@@ -116,7 +113,7 @@ export function WalletPayout() {
       return;
     }
 
-    writeAuditEvent("review_started", browserLocation);
+    void writeAuditEvent("review_started", browserLocation);
     setReviewStatus("Transfer review started. No money was sent in this prototype.");
   }
 
@@ -176,13 +173,4 @@ export function WalletPayout() {
       </div>
     </section>
   );
-}
-
-function readAuditEvents(): LoginAuditEvent[] {
-  try {
-    const rawEvents = localStorage.getItem(LOGIN_AUDIT_STORAGE_KEY);
-    return rawEvents ? (JSON.parse(rawEvents) as LoginAuditEvent[]) : [];
-  } catch {
-    return [];
-  }
 }
