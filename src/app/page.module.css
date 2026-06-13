@@ -1,0 +1,377 @@
+.shell {
+  min-height: 100vh;
+  padding: 28px clamp(18px, 5vw, 78px) 64px;
+  background:
+    radial-gradient(circle at 78% 12%, rgba(34, 197, 94, 0.32), transparent 30%),
+    radial-gradient(circle at 8% 88%, rgba(14, 165, 233, 0.28), transparent 32%),
+    linear-gradient(135deg, #062b24 0%, #0b4a3f 48%, #05231e 100%);
+  color: #fbfff8;
+  font-family: var(--font-geist-sans);
+}
+
+.nav {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.brand,
+.navLinks,
+.cardHeader,
+.panelHeader {
+  display: flex;
+  align-items: center;
+}
+
+.brand {
+  gap: 12px;
+  font-size: 1.05rem;
+  font-weight: 850;
+}
+
+.brandMark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 8px;
+  background: #b9f25d;
+  color: #05231e;
+  font-size: 0.84rem;
+}
+
+.navLinks {
+  gap: 20px;
+  color: rgba(251, 255, 248, 0.74);
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+
+.payoutGrid {
+  max-width: 1180px;
+  margin: 70px auto 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 440px);
+  align-items: center;
+  gap: clamp(36px, 8vw, 104px);
+}
+
+.payoutCopy {
+  max-width: 720px;
+}
+
+.eyebrow,
+.cardLabel,
+.kicker {
+  color: #b9f25d;
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.payoutCopy h1 {
+  margin-top: 18px;
+  max-width: 780px;
+  font-size: clamp(3.1rem, 8vw, 7.4rem);
+  line-height: 0.9;
+  letter-spacing: 0;
+}
+
+.lede {
+  margin-top: 28px;
+  max-width: 630px;
+  color: rgba(251, 255, 248, 0.78);
+  font-size: clamp(1.03rem, 2vw, 1.22rem);
+  line-height: 1.75;
+}
+
+.signalItem dt {
+  display: block;
+  color: rgba(251, 255, 248, 0.62);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.loginCard,
+.signalPanel,
+.auditEmpty,
+.auditTableWrap {
+  border: 1px solid rgba(251, 255, 248, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 253, 244, 0.96);
+  color: #102b25;
+  box-shadow: 0 30px 100px rgba(2, 20, 16, 0.28);
+}
+
+.loginCard {
+  padding: clamp(22px, 4vw, 32px);
+}
+
+.cardHeader {
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.amountBadge,
+.confidence {
+  border-radius: 999px;
+  background: #e8f8dc;
+  color: #0f6a46;
+  font-size: 0.78rem;
+  font-weight: 850;
+  padding: 8px 12px;
+  text-transform: capitalize;
+}
+
+.walletChoices {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.walletChoice,
+.walletChoiceActive {
+  border: 1px solid #dbe3d6;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 850;
+  padding: 14px;
+}
+
+.walletChoice {
+  background: #fffdf4;
+  color: #52615c;
+}
+
+.walletChoiceActive {
+  background: #0f6a46;
+  color: #fffdf4;
+}
+
+.accessForm {
+  margin-top: 20px;
+  display: grid;
+  gap: 14px;
+}
+
+.accessForm label {
+  display: grid;
+  gap: 8px;
+  color: #52615c;
+  font-size: 0.86rem;
+  font-weight: 850;
+}
+
+.accessForm input {
+  width: 100%;
+  border: 1px solid #d9ded9;
+  border-radius: 8px;
+  background: #fffdf7;
+  color: #102b25;
+  font: inherit;
+  padding: 14px 15px;
+}
+
+.accessForm input:focus {
+  outline: 3px solid rgba(185, 242, 93, 0.34);
+  border-color: #0f6a46;
+}
+
+.consentBox {
+  margin-top: 20px;
+  border: 1px solid #d9ead0;
+  border-radius: 8px;
+  background: #f5fbef;
+  padding: 16px;
+}
+
+.consentBox strong {
+  display: block;
+  color: #102b25;
+}
+
+.consentBox p,
+.formNote {
+  margin-top: 8px;
+  color: #60706a;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.consentBox button,
+.reviewButton {
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 850;
+  padding: 15px 18px;
+}
+
+.consentBox button {
+  margin-top: 14px;
+  background: #102b25;
+  color: #fffdf4;
+}
+
+.reviewButton {
+  margin-top: 16px;
+  background: #b9f25d;
+  color: #05231e;
+}
+
+.signalPanel {
+  margin-top: 24px;
+  padding: clamp(20px, 4vw, 30px);
+}
+
+.panelHeader {
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.signalPanel .kicker {
+  color: #0f6a46;
+}
+
+.signalGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.signalItem {
+  min-height: 84px;
+  border: 1px solid #e2e7df;
+  border-radius: 8px;
+  background: #fffdf7;
+  padding: 15px;
+}
+
+.signalItem dt {
+  color: #65746f;
+}
+
+.signalItem dd {
+  margin-top: 10px;
+  color: #102b25;
+  font-size: 1rem;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+}
+
+.locationMeta {
+  margin-top: 18px;
+  color: #52615c;
+  font-family: var(--font-geist-mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.notes {
+  margin-top: 16px;
+  padding-left: 18px;
+  color: #52615c;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.notes li + li {
+  margin-top: 8px;
+}
+
+.auditPage {
+  max-width: 1180px;
+  margin: 68px auto 0;
+}
+
+.auditHeader {
+  max-width: 780px;
+}
+
+.auditHeader h1 {
+  margin-top: 14px;
+  font-size: clamp(2.5rem, 6vw, 5.8rem);
+  line-height: 0.95;
+}
+
+.auditHeader p {
+  margin-top: 18px;
+  color: rgba(251, 255, 248, 0.76);
+  line-height: 1.7;
+}
+
+.auditEmpty,
+.auditTableWrap {
+  margin-top: 28px;
+}
+
+.auditEmpty {
+  padding: 24px;
+}
+
+.auditTableWrap {
+  overflow-x: auto;
+}
+
+.auditTable {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 880px;
+}
+
+.auditTable th,
+.auditTable td {
+  border-bottom: 1px solid #e2e7df;
+  padding: 16px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.auditTable th {
+  color: #65746f;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.auditTable td {
+  color: #102b25;
+  font-size: 0.92rem;
+}
+
+@media (max-width: 900px) {
+  .payoutGrid {
+    grid-template-columns: 1fr;
+    margin-top: 48px;
+  }
+}
+
+@media (max-width: 620px) {
+  .shell {
+    padding-inline: 16px;
+  }
+
+  .nav,
+  .panelHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .navLinks {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .signalGrid {
+    grid-template-columns: 1fr;
+  }
+}
