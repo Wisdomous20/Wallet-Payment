@@ -8,6 +8,7 @@ const AUDIT_EVENTS_KEY = "walletpay:login-audit-events";
 export type LoginAuditEvent = {
   id: string;
   maskedAccount: string;
+  device: string;
   walletChannel: WalletChannel;
   status:
     | "runtime_ip_checked"

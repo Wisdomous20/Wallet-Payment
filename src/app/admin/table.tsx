@@ -39,11 +39,12 @@ export function LocationAuditTable() {
       }
     }
 
-    const timeout = window.setTimeout(() => void loadEvents(), 0);
+    void loadEvents();
+    const interval = window.setInterval(() => void loadEvents(), 5_000);
 
     return () => {
       isMounted = false;
-      window.clearTimeout(timeout);
+      window.clearInterval(interval);
     };
   }, []);
 
@@ -63,6 +64,7 @@ export function LocationAuditTable() {
         <thead>
           <tr>
             <th>Time</th>
+            <th>Device</th>
             <th>Account</th>
             <th>Wallet</th>
             <th>Status</th>
@@ -74,6 +76,7 @@ export function LocationAuditTable() {
           {events.map((event) => (
             <tr key={event.id}>
               <td>{new Date(event.createdAt).toLocaleString()}</td>
+              <td>{event.device ?? "Unknown device"}</td>
               <td>{event.maskedAccount}</td>
               <td>{event.walletChannel}</td>
               <td>{formatStatus(event.status)}</td>

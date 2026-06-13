@@ -47,6 +47,7 @@ export async function POST(request: Request) {
   const event: LoginAuditEvent = {
     id: crypto.randomUUID(),
     maskedAccount: maskAccount(body.account),
+    device: getDeviceLabel(request.headers.get("user-agent")),
     walletChannel: body.walletChannel,
     status: body.status,
     createdAt: new Date().toISOString(),
@@ -65,6 +66,22 @@ export async function POST(request: Request) {
       },
     },
   );
+}
+
+function getDeviceLabel(userAgent: string | null): string {
+  if (!userAgent) {
+    return "Unknown device";
+  }
+
+  if (/iphone|android.*mobile|mobile/i.test(userAgent)) {
+    return "Phone";
+  }
+
+  if (/ipad|tablet|android/i.test(userAgent)) {
+    return "Tablet";
+  }
+
+  return "Desktop/Laptop";
 }
 
 function isAuditPayload(value: unknown): value is {
